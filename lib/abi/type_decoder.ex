@@ -182,7 +182,17 @@ defmodule ABI.TypeDecoder do
 
   def do_decode_raw(binary_data, types) do
     {reversed_result, binary_rest} =
-      Enum.reduce(types, {[], binary_data}, fn type, {acc, binary} ->
+      Enum.reduce(types, {[], binary_data}, fn {:named, type, name}, {acc, binary} ->
+        {value, rest} =
+          if FunctionSelector.is_dynamic?(type) do
+            decode_type(type, binary, binary_data)
+          else
+            decode_type(type, binary)
+          end
+
+        {[{name, value} | acc], rest}
+
+        type, {acc, binary} ->
         {value, rest} =
           if FunctionSelector.is_dynamic?(type) do
             decode_type(type, binary, binary_data)
@@ -261,7 +271,17 @@ defmodule ABI.TypeDecoder do
 
   defp decode_type({:tuple, types}, data) do
     {reversed_result, _, binary} =
-      Enum.reduce(types, {[], [], data}, fn type, {acc, dynamic, binary} ->
+      Enum.reduce(types, {[], [], data}, fn
+        {:named, type, name}, {acc, dynamic, binary} ->
+          if FunctionSelector.is_dynamic?(type) do
+            {val, binary} = decode_type(type, binary, data)
+            {[{name, val} | acc], [type | dynamic], binary}
+          else
+            {val, binary} = decode_type(type, binary)
+            {[{name, val} | acc], dynamic, binary}
+          end
+
+        type, {acc, dynamic, binary} ->
         if FunctionSelector.is_dynamic?(type) do
           {val, binary} = decode_type(type, binary, data)
           {[val | acc], [type | dynamic], binary}
@@ -293,6 +313,10 @@ defmodule ABI.TypeDecoder do
       end
 
     {value, rest}
+  end
+
+  defp decode_type({:named, type, name}, data) do
+    {decode_type(type, data), name}
   end
 
   defp decode_type({:array, type}, data, full_data) do

@@ -271,7 +271,17 @@ defmodule ABI.TypeDecoder do
 
   defp decode_type({:tuple, types}, data) do
     {reversed_result, _, binary} =
-      Enum.reduce(types, {[], [], data}, fn type, {acc, dynamic, binary} ->
+      Enum.reduce(types, {[], [], data}, fn
+        {:named, type, name}, {acc, dynamic, binary} ->
+          if FunctionSelector.is_dynamic?(type) do
+            {val, binary} = decode_type(type, binary, data)
+            {[{name, val} | acc], [type | dynamic], binary}
+          else
+            {val, binary} = decode_type(type, binary)
+            {[{name, val} | acc], dynamic, binary}
+          end
+
+        type, {acc, dynamic, binary} ->
         if FunctionSelector.is_dynamic?(type) do
           {val, binary} = decode_type(type, binary, data)
           {[val | acc], [type | dynamic], binary}

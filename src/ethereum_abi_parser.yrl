@@ -47,6 +47,8 @@ type -> typename digits :
   juxt_type(list_to_atom(v('$1')), list_to_integer(v('$2'))).
 type -> typename letters :
   named_type(list_to_atom(v('$1')), iolist_to_binary(v('$2'))).
+type -> typename digits letters:
+  named_type(juxt_type(list_to_atom(v('$1')), list_to_integer(v('$2'))), iolist_to_binary(v('$3'))).
 type -> typename digits letters digits :
   double_juxt_type(list_to_atom(v('$1')), v('$3'), list_to_integer(v('$2')), list_to_integer(v('$4'))).
 type -> tuple : '$1'.
@@ -76,7 +78,8 @@ named_type(int, Name) -> {named, juxt_type(int, 256), Name};
 named_type(uint, Name) -> {named, juxt_type(uint, 256), Name};
 named_type(tuple, Name) -> {named, tuple, Name};
 named_type(fixed, Name) -> {named, double_juxt_type(fixed, x, 128, 19), Name};
-named_type(ufixed, Name) -> {named, double_juxt_type(ufixed, x, 128, 19), Name}.
+named_type(ufixed, Name) -> {named, double_juxt_type(ufixed, x, 128, 19), Name};
+named_type({Type, Size}, Name) -> {named, {Type, Size}, Name}.
 
 with_subscripts(Type, []) -> Type;
 with_subscripts(Type, [H | T]) -> with_subscripts(with_subscript(Type, H), T).
